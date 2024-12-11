@@ -1,0 +1,17 @@
+let
+    Source = Csv.Document(File.Contents("C:\Users\dovil\Downloads\bank_data.csv"),[Delimiter=",", Columns=13, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Series", Int64.Type}, {"Time", type text}, {"Total assets", Int64.Type}, {"Return", Int64.Type}, {"Equity", Int64.Type}, {"RSA", Int64.Type}, {"RSL", Int64.Type}, {"Liquid assets", Int64.Type}, {"Non-performing loans", Int64.Type}, {"Total loans", Int64.Type}, {"Total deposits", Int64.Type}, {"GDP", Int64.Type}, {"Inflation", type number}}),
+    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each ([Time] <> "2014-Q1" and [Time] <> "2014-Q2" and [Time] <> "2014-Q3" and [Time] <> "2014-Q4" and [Time] <> "2015-Q1" and [Time] <> "2015-Q2" and [Time] <> "2015-Q3" and [Time] <> "2015-Q4")),
+    #"Added Custom" = Table.AddColumn(#"Filtered Rows", "ROE", each [Return]/[Equity]),
+    #"Added Custom1" = Table.AddColumn(#"Added Custom", "ROA", each [Return]/[Total assets]),
+    #"Added Custom2" = Table.AddColumn(#"Added Custom1", "Liquidity", each [Liquid assets]/[Total deposits]),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Added Custom2",{{"Liquidity", type number}, {"ROA", type number}, {"ROE", type number}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed Type1",{"RSA", "RSL", "Liquid assets", "Non-performing loans", "Total loans", "Total deposits", "GDP", "Inflation", "Series"}),
+    #"Duplicated Column" = Table.DuplicateColumn(#"Removed Columns", "Time", "Time - Copy"),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Duplicated Column", "Time - Copy", Splitter.SplitTextByDelimiter("-", QuoteStyle.Csv), {"Time - Copy.1", "Time - Copy.2"}),
+    #"Changed Type2" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"Time - Copy.1", Int64.Type}, {"Time - Copy.2", type text}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type2",{{"Time - Copy.1", "Year"}, {"Time - Copy.2", "Quarter"}})
+in
+    #"Renamed Columns"
+	
